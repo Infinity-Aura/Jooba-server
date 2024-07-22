@@ -47,7 +47,6 @@ export class AuthenticationController {
   @HttpCode(HttpStatus.OK)
   @Post('refresh-tokens')
   refreshTokens(@Body() refreshTokenDto: RefreshTokenDto) {
-    console.log('refreshToken', refreshTokenDto);
     return this.authService.refreshTokens(refreshTokenDto);
   }
 }

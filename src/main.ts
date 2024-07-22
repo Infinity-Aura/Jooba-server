@@ -9,12 +9,14 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe());
   app.enableCors({
-    origin: ['http://localhost:5173'],
+    origin: process.env.CLIENT_URL.split(','),
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     credentials: true,
   });
 
-  await app.listen(3001);
+  await app.listen(process.env.PORT);
+
+  console.log(`Application is running on: ${await app.getUrl()}`);
 }
 
 bootstrap();

@@ -1,0 +1,77 @@
+name: Release and Deploy
+
+on:
+  push:
+    branches:  [develop]
+
+env:
+  PROJECT_SOURCE: ~/projects/jooba
+  IMAGES_SOURCE: ~/projects/jooba/docker-images
+  IMAGE_NAME: ${{ github.actor }}/jooba-server
+  IMAGE_FILE_NAME: jooba-server
+  IMAGE_FILE_PATH: jooba-server.tar
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build the Docker image
+        run: docker build . -t ${{ env.IMAGE_NAME }}:latest
+
+      - name: Save Docker image to a file
+        run: docker save ${{ env.IMAGE_NAME }}:latest -o ${{ env.IMAGE_FILE_PATH }}
+
+      - name: Upload Docker image as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.IMAGE_FILE_NAME }}
+          path: ${{ env.IMAGE_FILE_PATH }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Remove existing Docker image file if it exists
+        run: rm -f ${{ env.IMAGE_FILE_PATH }}
+
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.IMAGE_FILE_NAME }}
+          path: ./${{ env.IMAGE_FILE_PATH }}
+
+      - name: Transfer Docker image to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: ./${{ env.IMAGE_FILE_PATH }}
+          target: ${{ env.IMAGES_SOURCE }}/
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            docker load --input ${{ env.IMAGES_SOURCE }}/${{ env.IMAGE_FILE_PATH }}/${{ env.IMAGE_FILE_PATH }}
+            cd ${{ env.PROJECT_SOURCE }}
+            docker compose up -d
+
+  cleanup:
+    needs: deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Delete Docker image artifact
+        run: rm -f ${{ env.IMAGE_FILE_PATH }}
