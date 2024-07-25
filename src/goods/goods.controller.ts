@@ -24,6 +24,14 @@ export class GoodsController {
     return this.goodsService.create(userId, createGoodDto);
   }
 
+  @Post('bulk')
+  createBulk(
+    @ActiveUser('sub') userId: string,
+    @Body() createGoodDto: CreateGoodDto[],
+  ) {
+    return this.goodsService.createBulk(userId, createGoodDto);
+  }
+
   @Get()
   findAll() {
     return this.goodsService.findAll();

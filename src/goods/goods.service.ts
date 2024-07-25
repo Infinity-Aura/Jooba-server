@@ -23,6 +23,10 @@ export class GoodsService {
     });
   }
 
+  async createBulk(userId: string, createGoodDto: CreateGoodDto[]) {
+    return await this.goodsModel.insertMany(createGoodDto.map((good) => ({ ...good, supplierId: userId })));
+  }
+
   findAll() {
     return this.goodsModel.find();
   }
